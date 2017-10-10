@@ -10,7 +10,12 @@
 // ==/UserScript==
 
 (function() {
+	if (typeof(Map) !== 'function') {
+		return;
+	}
+
 	var triggerKey = 'ctrlKey';
+	var cancelTimeout = 3000;
 	var markStyle = 'dashed';
 	var markWidth = '2px';
 	var markColor = 'red';
@@ -22,11 +27,12 @@
 		}
 
 		var body = document.body; //e.target.ownerDocument.body;
-		var link_map = Object.create(null);
+		var linkMap = new Map();
 		var timeout = null;
 
 		var mouse_move = function(e) {
-			clear_timeout(true);
+			clear_timeout();
+			timeout = set_timeout();
 			if (!e[triggerKey]) {
 				return;
 			}
@@ -39,21 +45,21 @@
 
 				// check url availability
 				var href = elm.href;
-				if (!href || (href in link_map)) {
+				if (!href || linkMap.has(href)) {
 					continue;
 				}
 
 				// record original information
 				var style = elm.style;
-				link_map[href] = {
-					dom: elm, 
+				linkMap.set(href, {
+					dom: elm,
 					style: {
 						outlineStyle: style.outlineStyle,
 						outlineWidth: style.outlineWidth,
 						outlineColor: style.outlineColor,
 						outlineOffset: style.outlineOffset
 					}
-				};
+				});
 
 				// modify element style
 				style.outlineStyle = markStyle;
@@ -64,27 +70,18 @@
 		};
 
 		var mouse_up = function(e) {
-			remove_all_listener();
-
-			// reset element style
-			var i, urls = Object.keys(link_map);
-			for (i = urls.length - 1; i >= 0; --i) {
-				var data = link_map[urls[i]], dom_style = data.dom.style, style = data.style;
-				for (var key in style) {
-					if (Object.prototype.hasOwnProperty.call(style, key)) {
-						dom_style[key] = style[key];
-					}
-				}
-			}
+			clear_timeout();
+			remove_all();
 
 			// check whether to open links
 			if (!e[triggerKey]) {
 				return;
 			}
 
-			// open links
-			for (i = urls.length - 1; i >= 0; --i) {
-				GM_openInTab(urls[i], {
+			// open links (we should always open in reverse order)
+			var links = Array.from(linkMap.keys());
+			for (var i = links.length - 1; i >= 0; --i) {
+				GM_openInTab(links[i], {
 					active: false,
 					insert: true,
 					setParent: true
@@ -92,7 +89,7 @@
 			}
 
 			// disable default context menu
-			if (urls.length) {
+			if (links.length > 0) {
 				body.addEventListener('contextmenu', disable_contextmenu, {
 					capture: true, 
 					once: true
@@ -107,32 +104,39 @@
 			e.preventDefault();
 		};
 
+		var set_timeout = function() {
+			return window.setTimeout(remove_all, cancelTimeout);
+		};
+
 		var clear_timeout = function(reset) {
 			if (timeout != null) {
 				window.clearTimeout(timeout);
-			}
-			if (reset) {
-				timeout = window.setTimeout(remove_all_listener, 3000);
-			} else {
 				timeout = null;
 			}
 		};
 
-		var remove_all_listener = function() {
+		var remove_all = function() {
 			body.removeEventListener('mousemove', mouse_move, true);
 			body.removeEventListener('mouseup', mouse_up, true);
-			clear_timeout();
+
+			// reset element style
+			var datas = Array.from(linkMap.values());
+			for (var i = datas.length - 1; i >= 0; --i) {
+				var data = datas[i], dom_style = data.dom.style, style = data.style;
+				for (var key in style) {
+					if (Object.prototype.hasOwnProperty.call(style, key)) {
+						dom_style[key] = style[key];
+					}
+				}
+			}
 		};
 
 		// add handlers
 		body.addEventListener('mousemove', mouse_move, true);
 		body.addEventListener('mouseup', mouse_up, {
-			capture: true, 
+			capture: true,
 			once: true
 		});
-		timeout = window.setTimeout(function() {
-			timeout = null;
-			remove_all_listener();
-		}, 3000);
-	}, true);	
+		timeout = set_timeout();
+	}, true);
 })();
