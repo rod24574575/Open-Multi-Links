@@ -68,7 +68,7 @@
 
 			// reset element style
 			var i, urls = Object.keys(link_map);
-			for (i = 0; i < urls.length; ++i) {
+			for (i = urls.length - 1; i >= 0; --i) {
 				var data = link_map[urls[i]], dom_style = data.dom.style, style = data.style;
 				for (var key in style) {
 					if (Object.prototype.hasOwnProperty.call(style, key)) {
@@ -83,7 +83,7 @@
 			}
 
 			// open links
-			for (i = 0; i < urls.length; ++i) {
+			for (i = urls.length - 1; i >= 0; --i) {
 				GM_openInTab(urls[i], {
 					active: false,
 					insert: true,
