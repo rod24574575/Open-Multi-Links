@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name            Open Multi Links
-// @namespace       
+// @namespace       Open Multi Links
 // @description     Open all link along the mouse moving path during the time between right mouse down with ctrl key and mouse up.
+// @version         0.0.1
+// @author          rod24574575
+// @homepageURL     https://github.com/rod24574575/Open-Multi-Links
 // @include         *://*
 // @grant           GM_openInTab
 // ==/UserScript==
